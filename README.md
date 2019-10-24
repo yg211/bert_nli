@@ -24,16 +24,21 @@ we should install the nvidia-apex package inside this project
 by running the following commands (copied from the official 
 instructions at [here](https://github.com/NVIDIA/apex)):
 ```shell script
-$ git clone https://github.com/NVIDIA/apex
-$ cd apex
-$ pip install -v --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./
+git clone https://github.com/NVIDIA/apex
+cd apex
+pip install -v --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./
+```
+* Download the SNLI and MultiNLI data as well as the trained model with the commands below
+```shell script
+cd datasets/
+python get_data.py
 ```
 * All code is tested on a desktop with nVidia RTX 2080 (8GB RAM),
 running Python 3.7 on Ubuntu 18.04 LTS.
 
 ## Use the trained NLI model 
 * The pretrained model is at *output/sample_model.state_dict* 
-* An example usage is provided at "example.py":
+* An example usage is provided at *example.py*:
 ```python
 from bert_nli import BertNLIModel
 
@@ -63,13 +68,7 @@ The output of the above example is:
 ```
 
 ## Train the NLI model
-* First, download the SNLI and MultiNLI data with the commands below
-```shell script
-cd datasets/
-python get_data.py
-```
-* Then come back to the main directory, and 
-run "train_text.py" with the default settings (batch size 8, epoch num
+* Run *train_text.py* with the default settings (batch size 8, epoch num
 1, using gpu, using mixed-precision training, 90% of the training set
 is used as train and 10% used as dev):
 ```shell script
@@ -78,7 +77,7 @@ python train_test.py
 On the machine with one RTX 2080 GPU card, 
 it takes around three hours to finish the training.
 * The trained model (that has the best performance on the dev set)
-will be saved to directory 'output/'.
+will be saved to directory *output/*.
 
 ## Test the performance of the trained
 * To test the performance of a trained model, run the command below:
