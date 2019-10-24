@@ -1,9 +1,10 @@
 # BERT-based NLI model
 
 This project includes a natural language inference (NLI) model, developed
-by fine-tuning BERT-base on SNLI and MultiNLI datasets. An 
-easy-to-use interface is provided for using the trained model 
-or fine-tune it on extra data.
+by fine-tuning BERT-base on the SNLI and MultiNLI datasets. 
+The pre-trained model is provided, as well as an 
+easy-to-use interface for using the trained model.
+Code for training and testing the model is also provided.
 
 Contact person: Yang Gao, yang.gao@rhul.ac.uk
 
