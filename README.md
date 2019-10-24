@@ -18,9 +18,14 @@ Don't hesitate to send me an e-mail or report an issue, if something is broken (
 ```shell script
 pip3 install -r requirements.txt
 ```
-* If you would like to do mixed-precision training 
+* Download the SNLI and MultiNLI data as well as the trained model with the commands below
+```shell script
+cd datasets/
+python get_data.py
+```
+* (Optional) If you would like to run mixed-precision training 
 (which can save the GPU memory consumption by roughly 50%), 
-we should install the nvidia-apex package inside this project
+install the nvidia-apex package inside this project
 by running the following commands (copied from the official 
 instructions at [here](https://github.com/NVIDIA/apex)):
 ```shell script
@@ -28,12 +33,7 @@ git clone https://github.com/NVIDIA/apex
 cd apex
 pip install -v --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./
 ```
-* Download the SNLI and MultiNLI data as well as the trained model with the commands below
-```shell script
-cd datasets/
-python get_data.py
-```
-* All code is tested on a desktop with nVidia RTX 2080 (8GB RAM),
+* All code is tested on a desktop with nVidia RTX 2080,
 running Python 3.7 on Ubuntu 18.04 LTS.
 
 ## Use the trained NLI model 
