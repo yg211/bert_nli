@@ -6,9 +6,9 @@ by fine-tuning Transformers on the SNLI and MultiNLI datasets.
 **Highlighted Features**
 
 * Models based on BERT-(base, large) and ALBERT-(base,large)
-* *Low memory requirements*: Using mixed-precision (apex) and checkpointing to reduce the GPU memory consumption; training the bert/albert-large model consumes less than 6GB GPU memory.
+* *Low memory requirements*: Using *mixed-precision* (nvidia apex) and [checkpoint](https://pytorch.org/docs/stable/checkpoint.html) to reduce the GPU memory consumption; training the bert/albert-large model consumes less than **5GB** GPU memory.
 * *Easy inerface*: A straightforward interface is provided to use the trained models
-* *All source code*: All source code for training the model are provided
+* *All source code*: All source code for training the models are provided
 
 Contact person: Yang Gao, yang.gao@rhul.ac.uk
 
@@ -42,8 +42,8 @@ pip install -v --no-cache-dir --global-option="--cpp_ext" --global-option="--cud
 running Python 3.7 on Ubuntu 18.04 LTS.
 
 ## Use the trained NLI model 
-* The pretrained model is at *output/sample_model.state_dict* 
-* An example usage is provided at *example.py*:
+* The pretrained models are downloaded to *output/* (after you run *get_data.py* in datasets/)
+* An example is presented in *example.py*:
 ```python
 from bert_nli import BertNLIModel
 
@@ -58,25 +58,27 @@ The output of the above example is:
 ```
 
 ## Train the NLI model
-* Run *train.py* and specify what Transformer model you would fine-tune:
+* Run *train.py* and specify what Transformer model you would like to fine tune:
 ```shell script
 python train.py --bert_type bert-large --check_point 1
 ```
-Option "--check_point 1" means we will use the checkpoint technique
-during training. Without using it, the RTX2080 card is not 
-able to accommodate the bert-large model. But by using
+Option "--check_point 1" means that we will use the checkpoint technique
+during training. Without using it, the RTX2080 card (8GB memory) is not 
+able to accommodate the bert-large model. But note that, by using
 checkpoint, it usually takes longer time to train the model.
-* The trained model (that has the best performance on the dev set)
+
+The trained model (that has the best performance on the dev set)
 will be saved to directory *output/*.
 
 ## Test the performance of the trained
-* To test the performance of a trained model on MNLI and SNLI
+* To test the performance of a trained model on the MNLI and SNLI
 dev sets, run the command below:
 ```shell script
 python test_trained_model.py --bert_type bert-large
 ```
 
 **BERT-base**
+
 Accuracy: 0.8608.
 |  | Contradiction | Entail | Neutral |
 |-------|-----------|--------|----|
@@ -85,6 +87,7 @@ Accuracy: 0.8608.
 | F1 | 0.8773 | 0.8804 | 0.8239 |
 
 **BERT-large**
+
 Accuracy: 0.8739
 |  | Contradiction | Entail | Neutral |
 |-------|-----------|--------|----|
@@ -93,6 +96,7 @@ Accuracy: 0.8739
 | F1 | 0.8944 | 0.8894 | 0.8369 |
 
 **ALBERT-large**
+
 Accuracy: 0.8743
 |  | Contradiction | Entail | Neutral |
 |-------|-----------|--------|----|
