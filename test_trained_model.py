@@ -2,26 +2,23 @@ import sys
 sys.path.append('../')
 sys.path.append('../apex')
 
-"""
-The system trains BERT on the SNLI + MultiNLI (AllNLI) dataset
-with softmax loss function. At every 1000 training steps, the model is evaluated on the
-STS benchmark dataset
-"""
 import torch
 import numpy as np
 from nltk.tokenize import word_tokenize
 from sklearn.metrics import precision_recall_fscore_support
 from tqdm import tqdm
+import argparse
 
 from bert_nli import BertNLIModel
 from utils.nli_data_reader import NLIDataReader
 
 
-def evaluate(model, test_data, mute=False):
+def evaluate(model, test_data, checkpoint, mute=False, test_bs=10):
     model.eval()
     sent_pairs = [test_data[i].get_texts() for i in range(len(test_data))]
     all_labels = [test_data[i].get_label() for i in range(len(test_data))]
-    _, probs = model(sent_pairs)
+    with torch.no_grad():
+        _, probs = model(sent_pairs,checkpoint,bs=test_bs)
     all_predict = [np.argmax(pp) for pp in probs]
     assert len(all_predict) == len(all_labels)
 
@@ -36,17 +33,37 @@ def evaluate(model, test_data, mute=False):
     return acc
 
 
+def parse_args():
+    ap = argparse.ArgumentParser("arguments for bert-nli evaluation")
+    ap.add_argument('-b','--batch_size',type=int,default=100,help='batch size')
+    ap.add_argument('-g','--gpu',type=int,default=1,help='run the model on gpu (1) or not (0)')
+    ap.add_argument('-cp','--checkpoint',type=int,default=0,help='run the model with checkpointing (1) or not (0)')
+    ap.add_argument('-tm','--trained_model',type=str,default='default',help='path to the trained model you want to test; if set as "default", it will find in output xx.state_dict, where xx is the bert-type you specified')
+    ap.add_argument('-bt','--bert_type',type=str,default='albert-large',help='model you want to test; make sure this is consistent with your trained model')
+
+    args = ap.parse_args()
+    return args.batch_size, args.gpu, args.trained_model, args.checkpoint, args.bert_type
+
 if __name__ == '__main__':
-    gpu = True
-    batch_size = 16
+    batch_size, gpu, mpath, checkpoint, bert_type = parse_args()
+
+    if mpath == 'default': mpath = 'output/{}.state_dict'.format(bert_type)
+    gpu = bool(gpu)
+    checkpoint = bool(checkpoint)
+
+    print('=====Arguments=====')
+    print('bert type:\t{}'.format(bert_type))
+    print('trained model path:\t{}'.format(mpath))
+    print('gpu:\t{}'.format(gpu))
+    print('checkpoint:\t{}'.format(checkpoint))
+    print('batch size:\t{}'.format(batch_size))
 
     # Read the dataset
     nli_reader = NLIDataReader('./datasets/AllNLI')
-
-    model = BertNLIModel(model_path='output/sample_model.state_dict',batch_size=batch_size)
+    model = BertNLIModel(model_path=mpath,batch_size=batch_size,bert_type=bert_type)
     test_data = nli_reader.get_examples('dev.gz') #,max_examples=50)
     print('test data size: {}'.format(len(test_data)))
-    evaluate(model,test_data)
+    evaluate(model,test_data,checkpoint,test_bs=batch_size)
     
 
 

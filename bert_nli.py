@@ -1,31 +1,51 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
+import torch.utils.checkpoint as checkpoint
 import os
 import numpy as np
+from tqdm import tqdm
 
-from transformers import BertModel, BertTokenizer
+from transformers import *
 from utils.utils import build_batch
 
 
 class BertNLIModel(nn.Module):
     """Performs prediction, given the input of BERT embeddings.
     """
-    def __init__(self,model_path=None,gpu=True,bert_type='base',label_num=3,batch_size=8):
+    def __init__(self,model_path=None,gpu=True,bert_type='bert-base',label_num=3,batch_size=8):
         super(BertNLIModel, self).__init__()
+        self.bert_type = bert_type
 
-        if 'base' in bert_type:
+        if 'bert-base' in bert_type:
             self.bert = BertModel.from_pretrained('bert-base-uncased')
             self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+            self.num_hidden_layers = 12
             self.vdim = 768
-        else:
+        elif 'bert-large' in bert_type:
             self.bert = BertModel.from_pretrained('bert-large-uncased')
             self.tokenizer = BertTokenizer.from_pretrained('bert-large-uncased')
+            self.num_hidden_layers = 24
             self.vdim = 1024
+        elif 'albert' in bert_type:
+            self.bert = AlbertModel.from_pretrained(bert_type)
+            self.tokenizer = AlbertTokenizer.from_pretrained(bert_type)
+            if 'base' in bert_type: 
+                self.vdim = 768
+                self.num_hidden_layers = 12
+            if '-large-' in bert_type: 
+                self.vdim = 1024
+                self.num_hidden_layers = 24
+        else:
+            print('illegal bert type {}!'.format(bert_type))
 
         self.nli_head = nn.Linear(self.vdim,label_num)
         self.gpu = gpu
         self.batch_size=batch_size
+        self.sm = nn.Softmax(dim=1)
+
+        # for checkpointing
+        # self.dummy_tensor = torch.ones(1, dtype=torch.float32, requires_grad=True)
 
         # load trained model
         if model_path is not None:
@@ -46,10 +66,14 @@ class BertNLIModel(nn.Module):
         else:
             self.load_state_dict(sdict)
 
-    def forward(self, sent_pair_list):
+    def forward(self, sent_pair_list, checkpoint=True, bs=None):
         all_probs = None
-        for batch_idx in range(0,len(sent_pair_list),self.batch_size):
-            probs = self.ff(sent_pair_list[batch_idx:batch_idx+self.batch_size]).data.cpu().numpy()
+        if bs is None: 
+            bs = self.batch_size
+            no_prog_bar = True
+        else: no_prog_bar = False
+        for batch_idx in tqdm(range(0,len(sent_pair_list),bs), disable=no_prog_bar,desc='evaluate'):
+            probs = self.ff(sent_pair_list[batch_idx:batch_idx+bs],checkpoint)[1].data.cpu().numpy()
             if all_probs is None:
                 all_probs = probs
             else:
@@ -66,24 +90,90 @@ class BertNLIModel(nn.Module):
                 labels.append('neutral')
         return labels, all_probs
 
-    def ff(self,sent_pair_list):
-        ids, types, masks = build_batch(self.tokenizer, sent_pair_list)
+
+    def step_bert_encode(self, module, hidden_states, attention_mask=None, head_mask=None):
+        all_hidden_states = ()
+        all_attentions = ()
+        for i, layer_module in enumerate(module.layer):
+            if module.output_hidden_states:
+                all_hidden_states = all_hidden_states + (hidden_states,)
+
+            layer_outputs = checkpoint.checkpoint(layer_module, hidden_states, attention_mask, head_mask[i])
+            hidden_states = layer_outputs[0]
+
+            if module.output_attentions:
+                all_attentions = all_attentions + (layer_outputs[1],)
+
+        # Add last layer
+        if module.output_hidden_states:
+            all_hidden_states = all_hidden_states + (hidden_states,)
+
+        outputs = (hidden_states,)
+        if module.output_hidden_states:
+            outputs = outputs + (all_hidden_states,)
+        if module.output_attentions:
+            outputs = outputs + (all_attentions,)
+        return outputs  # last-layer hidden state, (all hidden states), (all attentions)
+
+
+    def step_checkpoint_bert(self, input_ids, attention_mask=None, token_type_ids=None, position_ids=None, head_mask=None):
+        modules = [module for k, module in self.bert._modules.items()]
+
+        if attention_mask is None:
+            attention_mask = torch.ones_like(input_ids)
+        if token_type_ids is None:
+            token_type_ids = torch.zeros_like(input_ids)
+
+        extended_attention_mask = attention_mask.unsqueeze(1).unsqueeze(2)
+        extended_attention_mask = extended_attention_mask.to(dtype=next(self.parameters()).dtype) # fp16 compatibility
+        extended_attention_mask = (1.0 - extended_attention_mask) * -10000.0
+
+        if head_mask is not None:
+            if head_mask.dim() == 1:
+                head_mask = head_mask.unsqueeze(0).unsqueeze(0).unsqueeze(-1).unsqueeze(-1)
+                head_mask = head_mask.expand(self.num_hidden_layers, -1, -1, -1, -1)
+            elif head_mask.dim() == 2:
+                head_mask = head_mask.unsqueeze(1).unsqueeze(-1).unsqueeze(-1)  # We can specify head_mask for each layer
+            head_mask = head_mask.to(dtype=next(self.parameters()).dtype) # switch to fload if need + fp16 compatibility
+        else:
+            head_mask = [None] * self.num_hidden_layers
+
+        embedding_output = modules[0](input_ids, position_ids=position_ids, token_type_ids=token_type_ids)
+        encoder_outputs = self.step_bert_encode(modules[1], embedding_output,extended_attention_mask,head_mask)
+        sequence_output = encoder_outputs[0]
+        pooled_output = modules[2](sequence_output)
+
+        outputs = (sequence_output, pooled_output,) + encoder_outputs[1:]  # add hidden_states and attentions if they are here
+        return outputs  # sequence_output, pooled_output, (hidden_states), (attentions)
+
+
+    def ff(self,sent_pair_list,checkpoint):
+        ids, types, masks = build_batch(self.tokenizer, sent_pair_list, self.bert_type)
         if ids is None: return None
-        ids_tensor = torch.tensor(ids)
-        types_tensor = torch.tensor(types)
-        masks_tensor = torch.tensor(masks)
+        ids_tensor = torch.tensor(ids) 
+        types_tensor = torch.tensor(types) 
+        masks_tensor = torch.tensor(masks) 
         
         if self.gpu:
             ids_tensor = ids_tensor.to('cuda')
             types_tensor = types_tensor.to('cuda')
             masks_tensor = masks_tensor.to('cuda')
-            #self.bert.to('cuda')
-            #self.nli_head.to('cuda')
 
-        cls_vecs = self.bert(input_ids=ids_tensor, token_type_ids=types_tensor, attention_mask=masks_tensor)[1]
+        if checkpoint:
+            cls_vecs = self.step_checkpoint_bert(input_ids=ids_tensor, token_type_ids=types_tensor, attention_mask=masks_tensor)[1]
+        else:
+            cls_vecs = self.bert(input_ids=ids_tensor, token_type_ids=types_tensor, attention_mask=masks_tensor)[1]
+
         logits = self.nli_head(cls_vecs)
-        predict_probs = F.log_softmax(logits,dim=1)
-        return predict_probs
+        probs = self.sm(logits)
+
+        # to reduce gpu memory usage
+        # del ids_tensor
+        # del types_tensor
+        # del masks_tensor
+        # torch.cuda.empty_cache() # releases all unoccupied cached memory 
+
+        return logits, probs
 
     def save(self, output_path, config_dic=None, acc=None):
         if acc is None:

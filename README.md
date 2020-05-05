@@ -1,20 +1,24 @@
 # BERT-based NLI model
 
 This project includes a natural language inference (NLI) model, developed
-by fine-tuning BERT-base on the SNLI and MultiNLI datasets. 
-The pre-trained model is provided, as well as an 
-easy-to-use interface for using the trained model.
-Code for training and testing the model is also provided.
+by fine-tuning Transformers on the SNLI and MultiNLI datasets. 
+
+**Highlighted Features**
+
+* Models based on BERT-(base, large) and ALBERT-(base,large)
+* *Low memory requirements*: Using mixed-precision (apex) and checkpointing to reduce the GPU memory consumption; training the bert/albert-large model consumes less than 6GB GPU memory.
+* *Easy inerface*: A straightforward interface is provided to use the trained models
+* *All source code*: All source code for training the model are provided
 
 Contact person: Yang Gao, yang.gao@rhul.ac.uk
 
 https://sites.google.com/site/yanggaoalex/home
 
-Don't hesitate to send me an e-mail or report an issue, if something is broken (and it shouldn't be) or if you have further questions
+Don't hesitate to send me an e-mail or report an issue, if something is broken or if you have further questions.
 
 
 ## Prerequisties
-* Python3 
+* Python3.7 
 * Install all packages in requirement.txt.
 ```shell script
 pip3 install -r requirements.txt
@@ -43,59 +47,61 @@ running Python 3.7 on Ubuntu 18.04 LTS.
 ```python
 from bert_nli import BertNLIModel
 
-model = BertNLIModel('output/sample_model.state_dict')
-sent_pairs = [('The lecturer committed plagiarism.','He was promoted.'),
-              ('The lecturer became a professor last June.','He was promoted.'),
-              ('A man inspects the uniform of a figure in some East Asian country.','The man is sleeping.'),
-              ('An older and younger man smiling.','Two men are smiling and laughing at the cats playing on the floor.'),
-              ('A black race car starts up in front of a crowd of people.','A man is driving down a lonely road.'),
-              ('A soccer game with multiple males playing.','Some men are playing a sport.'),
-              ('A smiling costumed woman is holding an umbrella.','A happy woman in a fairy costume holds an umbrella.')
-            ]
-labels, probs = model(sent_pairs)
-print(labels)
-print(probs)
+model = BertNLIModel('output/bert-base.state_dict')
+sent_pairs = [('The lecturer committed plagiarism.','He was promoted.')]
+label, _= model(sent_pairs)
+print(label)
 ```        
 The output of the above example is:
 ```text
-['contradiction', 'entail', 'contradiction', 'neutral', 'contradiction', 'entail', 'neutral']
-[[-2.7058125e-02 -5.6325264e+00 -3.7672405e+00]
- [-4.1472511e+00 -4.2099822e-01 -1.1153491e+00]
- [-1.2617111e-03 -8.5965118e+00 -6.8346128e+00]
- [-3.7278435e+00 -6.5714045e+00 -2.5773764e-02]
- [-1.8420219e-03 -7.9999475e+00 -6.4988966e+00]
- [-7.6573701e+00 -3.1454802e-02 -3.4902668e+00]
- [-6.2880807e+00 -3.7793152e+00 -2.5006771e-02]]
+['contradiction']
 ```
 
 ## Train the NLI model
-* Run *train_text.py* with the default settings (batch size 8, epoch num
-1, using gpu, using mixed-precision training, 90% of the training set
-is used as train and 10% used as dev):
+* Run *train.py* and specify what Transformer model you would fine-tune:
 ```shell script
-python train_test.py
+python train.py --bert_type bert-large --check_point 1
 ```
-On the machine with one RTX 2080 GPU card, 
-it takes around three hours to finish the training.
+Option "--check_point 1" means we will use the checkpoint technique
+during training. Without using it, the RTX2080 card is not 
+able to accommodate the bert-large model. But by using
+checkpoint, it usually takes longer time to train the model.
 * The trained model (that has the best performance on the dev set)
 will be saved to directory *output/*.
 
 ## Test the performance of the trained
-* To test the performance of a trained model, run the command below:
+* To test the performance of a trained model on MNLI and SNLI
+dev sets, run the command below:
 ```shell script
-python test_trained_model.py
+python test_trained_model.py --bert_type bert-large
 ```
-You can specify the model you want to test when you initialise the
-BertNLIModel (line 46 in test_trained_model.py). Performance of the 
-current sample model is summarised below: 
 
+**BERT-base**
+Accuracy: 0.8608.
 |  | Contradiction | Entail | Neutral |
 |-------|-----------|--------|----|
 | Precision | 0.8791 | 0.8955 | 0.8080 |
 | Recall | 0.8755 | 0.8658 | 0.8403 |
 | F1 | 0.8773 | 0.8804 | 0.8239 |
 
-The overall accuracy is 0.8608.
+**BERT-large**
+Accuracy: 0.8739
+|  | Contradiction | Entail | Neutral |
+|-------|-----------|--------|----|
+| Precision | 0.8992 | 0.8988 | 0.8233 |
+| Recall | 0.8895 | 0.8802 | 0.8508 |
+| F1 | 0.8944 | 0.8894 | 0.8369 |
+
+**ALBERT-large**
+Accuracy: 0.8743
+|  | Contradiction | Entail | Neutral |
+|-------|-----------|--------|----|
+| Precision | 0.8907 | 0.8967 | 0.8335 |
+| Recall | 0.9006 | 0.8812 | 0.8397 |
+| F1 | 0.8957 | 0.8889 | 0.8366 |
+
+
+
 ## License
 Apache License Version 2.0
 
