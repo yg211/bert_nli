@@ -19,10 +19,25 @@ with zipfile.ZipFile(dataset_path, "r") as zip_ref:
     zip_ref.extractall(folder_path)
 os.remove(dataset_path)
 
-model_path = 'https://drive.google.com/uc?id=1YlS3wuwlhzGRPMyJr8SE4IP89U0W7yVU'
-print('Bedinning download of trained model')
-subprocess.call(['gdown', model_path])
-shutil.move('sample_model.state_dict','../output/')
+model_url = 'https://drive.google.com/uc?id=1YlS3wuwlhzGRPMyJr8SE4IP89U0W7yVU'
+print('Begin downloading trained model: bert-base')
+subprocess.call(['gdown', model_url])
+shutil.move('bert-base.state_dict','../output/')
+
+model_url = 'https://drive.google.com/uc?id=1i-YzLRM7MJ1bOL5mlicTamwuhPpT8igK'
+print('Begin downloading trained model: bert-large')
+subprocess.call(['gdown', model_url])
+shutil.move('bert-large.state_dict','../output/')
+
+model_url = 'https://drive.google.com/uc?id=1U3h_KSLQn51bSYOfXHIXFm2cV9PVqldH'
+print('Begin downloading trained model: albert-base')
+subprocess.call(['gdown', model_url])
+shutil.move('albert-base-v1.state_dict','../output/')
+
+model_url = 'https://drive.google.com/uc?id=15RsC8iyo_CsglQ6xcSzGBn28M1jybzx4'
+print('Begin downloading trained model: albert-large')
+subprocess.call(['gdown', model_url])
+shutil.move('albert-large-v2.state_dict','../output/')
 
 
-print("All datasets downloaded and extracted; trained model has been downloaded and put to output/sample_model.state_dict")
+print("All datasets downloaded and extracted. Trained models have been downloaded and put to output/")

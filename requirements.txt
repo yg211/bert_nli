@@ -6,6 +6,7 @@ click==7.1.2
 docutils==0.15.2
 filelock==3.0.12
 future==0.18.2
+gdown==3.11.0
 get==2019.4.13
 idna==2.9
 jmespath==0.9.5
@@ -14,6 +15,7 @@ nltk==3.5
 numpy==1.18.4
 post==2019.4.13
 public==2019.4.13
+PySocks==1.7.1
 python-dateutil==2.8.1
 query-string==2019.4.13
 regex==2020.4.4
