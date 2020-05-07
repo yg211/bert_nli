@@ -6,6 +6,7 @@ by fine-tuning Transformers on the SNLI and MultiNLI datasets.
 **Highlighted Features**
 
 * Models based on BERT-(base, large) and ALBERT-(base,large)
+* Implemented using *PyTorch* (1.5.0)
 * *Low memory requirements*: Using *mixed-precision* (nvidia apex) and [checkpoint](https://pytorch.org/docs/stable/checkpoint.html) to reduce the GPU memory consumption; training the bert/albert-large model consumes less than **5GB** GPU memory.
 * *Easy inerface*: A straightforward interface is provided to use the trained models
 * *All source code*: All source code for training the models are provided
@@ -77,6 +78,7 @@ dev sets, run the command below:
 python test_trained_model.py --bert_type bert-large
 ```
 
+----
 **BERT-base**
 
 Accuracy: 0.8608.
@@ -86,6 +88,7 @@ Accuracy: 0.8608.
 | Recall | 0.8755 | 0.8658 | 0.8403 |
 | F1 | 0.8773 | 0.8804 | 0.8239 |
 
+----
 **BERT-large**
 
 Accuracy: 0.8739
@@ -95,6 +98,7 @@ Accuracy: 0.8739
 | Recall | 0.8895 | 0.8802 | 0.8508 |
 | F1 | 0.8944 | 0.8894 | 0.8369 |
 
+----
 **ALBERT-large**
 
 Accuracy: 0.8743
