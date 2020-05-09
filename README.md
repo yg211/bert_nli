@@ -18,30 +18,6 @@ https://sites.google.com/site/yanggaoalex/home
 Don't hesitate to send me an e-mail or report an issue, if something is broken or if you have further questions.
 
 
-## Prerequisties
-* Python3.7 
-* Install all packages in requirement.txt.
-```shell script
-pip3 install -r requirements.txt
-```
-* Download the SNLI and MultiNLI data as well as the trained model with the commands below
-```shell script
-cd datasets/
-python get_data.py
-```
-* (Optional) If you would like to run mixed-precision training 
-(which can save the GPU memory consumption by roughly 50%), 
-install the nvidia-apex package inside this project
-by running the following commands (copied from the official 
-instructions at [here](https://github.com/NVIDIA/apex)):
-```shell script
-git clone https://github.com/NVIDIA/apex
-cd apex
-pip install -v --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./
-```
-* All code is tested on a desktop with nVidia RTX 2080,
-running Python 3.7 on Ubuntu 18.04 LTS.
-
 ## Use the trained NLI model 
 * The pretrained models are downloaded to *output/* (after you run *get_data.py* in datasets/)
 * An example is presented in *example.py*:
@@ -58,7 +34,32 @@ The output of the above example is:
 ['contradiction']
 ```
 
-## Train the NLI model
+## How to set up
+* Python3.7 
+* Install all packages in requirement.txt.
+```shell script
+pip3 install -r requirements.txt
+```
+* Download the SNLI and MultiNLI data as well as the trained model with the commands below
+```shell script
+cd datasets/
+python get_data.py
+```
+* (Optional) If you would like to run mixed-precision training 
+(which can save the GPU memory consumption by around 50%), 
+install the nvidia-apex package inside this project
+by running the following commands (copied from the official 
+instructions at [here](https://github.com/NVIDIA/apex)):
+```shell script
+git clone https://github.com/NVIDIA/apex
+cd apex
+pip install -v --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./
+```
+* All code is tested on a desktop with nVidia RTX 2080,
+running Python 3.7 on Ubuntu 18.04 LTS.
+
+
+## Train NLI models
 * Run *train.py* and specify what Transformer model you would like to fine tune:
 ```shell script
 python train.py --bert_type bert-large --check_point 1
@@ -71,13 +72,14 @@ checkpoint, it usually takes longer time to train the model.
 The trained model (that has the best performance on the dev set)
 will be saved to directory *output/*.
 
-## Test the performance of the trained
+## Test the performance of the trained models
 * To test the performance of a trained model on the MNLI and SNLI
 dev sets, run the command below:
 ```shell script
 python test_trained_model.py --bert_type bert-large
 ```
 
+## Performance of Trained Models
 ----
 **BERT-base**
 
