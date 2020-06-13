@@ -104,22 +104,23 @@ def parse_args():
     ap.add_argument('--fp16',type=int,default=0,help='use apex mixed precision training (1) or not (0); do not use this together with checkpoint')
     ap.add_argument('--check_point','-cp',type=int,default=1,help='use checkpoint (1) or not (0); this is required for training bert-large or larger models; do not use this together with apex fp16')
     ap.add_argument('--gpu',type=int,default=1,help='use gpu (1) or not (0)')
-    ap.add_argument('-tr','--train_rate',type=float,default=0.95,help='how many data are used in training (the rest will be used as dev)')
     ap.add_argument('-ss','--scheduler_setting',type=str,default='WarmupLinear',choices=['WarmupLinear','ConstantLR','WarmupConstant','WarmupCosine','WarmupCosineWithHardRestarts'])
     ap.add_argument('-tm','--trained_model',type=str,default='None',help='path to the trained model; make sure the trained model is consistent with the model you want to train')
     ap.add_argument('-mg','--max_grad_norm',type=float,default=1.,help='maximum gradient norm')
     ap.add_argument('-wp','--warmup_percent',type=float,default=0.2,help='how many percentage of steps are used for warmup')
-    ap.add_argument('-bt','--bert_type',type=str,default='bert-large',help='transformer (bert) pre-trained model you want to use', choices=['bert-base','bert-large','albert-base-v2','albert-large-v2'])
+    ap.add_argument('-bt','--bert_type',type=str,default='bert-base',help='transformer (bert) pre-trained model you want to use', choices=['bert-base','bert-large','albert-base-v2','albert-large-v2'])
+    ap.add_argument('--hans',type=int,default=0,help='use hans data (1) or not (0)')
 
     args = ap.parse_args()
-    return args.batch_size, args.epoch_num, args.fp16, args.check_point, args.gpu, args.train_rate, args.scheduler_setting, args.max_grad_norm, args.warmup_percent, args.bert_type, args.trained_model
+    return args.batch_size, args.epoch_num, args.fp16, args.check_point, args.gpu,  args.scheduler_setting, args.max_grad_norm, args.warmup_percent, args.bert_type, args.trained_model, args.hans
 
 
 if __name__ == '__main__':
 
-    batch_size, epoch_num, fp16, checkpoint, gpu, train_rate, scheduler_setting, max_grad_norm, warmup_percent, bert_type, trained_model = parse_args()
+    batch_size, epoch_num, fp16, checkpoint, gpu, scheduler_setting, max_grad_norm, warmup_percent, bert_type, trained_model, hans = parse_args()
     fp16 = bool(fp16)
     gpu = bool(gpu)
+    hans = bool(hans)
     checkpoint = bool(checkpoint)
     if trained_model=='None': trained_model=None
 
@@ -131,14 +132,18 @@ if __name__ == '__main__':
     print('fp16:\t{}'.format(fp16))
     print('check_point:\t{}'.format(checkpoint))
     print('gpu:\t{}'.format(gpu))
-    print('train rate:\t{}'.format(train_rate))
     print('scheduler setting:\t{}'.format(scheduler_setting))
     print('max grad norm:\t{}'.format(max_grad_norm))
     print('warmup percent:\t{}'.format(warmup_percent))
+    print('using hans:\t{}'.format(hans))
     print('=====Arguments=====')
 
     label_num = 3
-    model_save_path = 'output/nli_{}-{}'.format(bert_type,datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+    if hans:
+        model_save_path = 'output/nli_hans_{}-{}'.format(bert_type,datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+    else:
+        model_save_path = 'output/nli_{}-{}'.format(bert_type,datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+
     print('model save path', model_save_path)
 
     #### Just some code to print debug information to stdout
@@ -149,16 +154,25 @@ if __name__ == '__main__':
     #### /print debug information to stdout
 
     # Read the dataset
+    if hans:
+        nli_reader = NLIDataReader('datasets/Hans')
+        hans_data = nli_reader.get_hans_examples('heuristics_train_set.txt')
+    else:
+        hans_data = []
+
     nli_reader = NLIDataReader('datasets/AllNLI')
     train_num_labels = nli_reader.get_num_labels()
+    msnli_data = nli_reader.get_examples('train.gz') #,max_examples=5000)
 
-    all_data = nli_reader.get_examples('train.gz') #,max_examples=5000)
+    all_data = msnli_data + hans_data
     random.shuffle(all_data)
-    train_data = all_data[:int(train_rate*len(all_data))]
-    dev_data = all_data[int(train_rate*len(all_data)):]
+    train_num = int(len(all_data)*0.95)
+    train_data = all_data[:train_num]
+    dev_data = all_data[train_num:]
 
     logging.info('train data size {}'.format(len(train_data)))
     logging.info('dev data size {}'.format(len(dev_data)))
+
     total_steps = math.ceil(epoch_num*len(train_data)*1./batch_size)
     warmup_steps = int(total_steps*warmup_percent)
 
@@ -184,7 +198,15 @@ if __name__ == '__main__':
     # for testing load the best model
     model.load_model(best_model_dic)
     logging.info('\n=====Training finished. Now start test=====')
-    test_data = nli_reader.get_examples('dev.gz') #,max_examples=50)
+
+    nli_reader = NLIDataReader('datasets/Hans')
+    hans_test_data = nli_reader.get_hans_examples('heuristics_evaluation_set.txt')
+
+    nli_reader = NLIDataReader('datasets/AllNLI')
+    msnli_test_data = nli_reader.get_examples('dev.gz') #,max_examples=50)
+
+    test_data = msnli_test_data + hans_test_data
+
     logging.info('test data size: {}'.format(len(test_data)))
     test_acc = evaluate(model,test_data,batch_size)
     logging.info('accuracy on test set: {}'.format(test_acc))
