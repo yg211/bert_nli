@@ -39,5 +39,10 @@ print('Begin downloading trained model: albert-large')
 subprocess.call(['gdown', model_url])
 shutil.move('albert-large-v2.state_dict','../output/')
 
+model_url = 'https://drive.google.com/uc?id=1N2WhpQmdNrDiMEV6aOF8bxWsnPGi4_rn'
+print('Begin downloading trained model: bert-base-hans')
+subprocess.call(['gdown', model_url])
+shutil.move('bert-base_hans.state_dict','../output/')
+
 
 print("All datasets downloaded and extracted. Trained models have been downloaded and put to output/")
