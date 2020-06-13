@@ -1,15 +1,15 @@
 # BERT-based NLI model
 
 This project includes a natural language inference (NLI) model, developed
-by fine-tuning Transformers on the SNLI and MultiNLI datasets. 
+by fine-tuning Transformers on the SNLI, MultiNLI and Hans datasets. 
 
 **Highlighted Features**
 
 * Models based on BERT-(base, large) and ALBERT-(base,large)
 * Implemented using *PyTorch* (1.5.0)
-* *Low memory requirements*: Using *mixed-precision* (nvidia apex) and [checkpoint](https://pytorch.org/docs/stable/checkpoint.html) to reduce the GPU memory consumption; training the bert/albert-large model consumes less than **5GB** GPU memory.
-* *Easy inerface*: A straightforward interface is provided to use the trained models
-* *All source code*: All source code for training the models are provided
+* *Low memory requirements*: Using *mixed-precision* (nvidia apex) and [checkpoint](https://pytorch.org/docs/stable/checkpoint.html) to reduce the GPU memory consumption; training the bert/albert-large model only requires around **6GB** GPU memory (with batch size 8).
+* *Easy inerface*: A user-friendly interface is provided to use the trained models
+* *All source code*: All source code for training and testing the models is provided
 
 Contact person: Yang Gao, yang.gao@rhul.ac.uk
 
@@ -45,17 +45,14 @@ pip3 install -r requirements.txt
 cd datasets/
 python get_data.py
 ```
-* (Optional) If you would like to run mixed-precision training 
-(which can save the GPU memory consumption by around 50%), 
-install the nvidia-apex package inside this project
-by running the following commands (copied from the official 
-instructions at [here](https://github.com/NVIDIA/apex)):
+* (Optional) Our code supports the use of the [Hans](https://arxiv.org/abs/1902.01007) dataset to train the model, in order to prevent the BERT model from exploiting spurious features to make NLI predictions. To use the Hans dataset, download *heuristics_train_set.txt* and *heuristics_evaluation_set.txt* from [here](https://github.com/tommccoy1/hans), and put them to *datasets/Hans/*.
+During training/test, add argument *--hans 1*.
 ```shell script
 git clone https://github.com/NVIDIA/apex
 cd apex
 pip install -v --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./
 ```
-* All code is tested on a desktop with nVidia RTX 2080,
+* All code is tested on a desktop with a single nVidia RTX 2080 card (8GB memory),
 running Python 3.7 on Ubuntu 18.04 LTS.
 
 
