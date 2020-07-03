@@ -102,7 +102,7 @@ def parse_args():
     ap.add_argument('-b','--batch_size',type=int,default=8,help='batch size')
     ap.add_argument('-ep','--epoch_num',type=int,default=1,help='epoch num')
     ap.add_argument('--fp16',type=int,default=0,help='use apex mixed precision training (1) or not (0); do not use this together with checkpoint')
-    ap.add_argument('--check_point','-cp',type=int,default=1,help='use checkpoint (1) or not (0); this is required for training bert-large or larger models; do not use this together with apex fp16')
+    ap.add_argument('--check_point','-cp',type=int,default=0,help='use checkpoint (1) or not (0); this is required for training bert-large or larger models; do not use this together with apex fp16')
     ap.add_argument('--gpu',type=int,default=1,help='use gpu (1) or not (0)')
     ap.add_argument('-ss','--scheduler_setting',type=str,default='WarmupLinear',choices=['WarmupLinear','ConstantLR','WarmupConstant','WarmupCosine','WarmupCosineWithHardRestarts'])
     ap.add_argument('-tm','--trained_model',type=str,default='None',help='path to the trained model; make sure the trained model is consistent with the model you want to train')
@@ -199,8 +199,11 @@ if __name__ == '__main__':
     model.load_model(best_model_dic)
     logging.info('\n=====Training finished. Now start test=====')
 
-    nli_reader = NLIDataReader('datasets/Hans')
-    hans_test_data = nli_reader.get_hans_examples('heuristics_evaluation_set.txt')
+    if hans:
+        nli_reader = NLIDataReader('datasets/Hans')
+        hans_test_data = nli_reader.get_hans_examples('heuristics_evaluation_set.txt')
+    else:
+        hans_test_data = []
 
     nli_reader = NLIDataReader('datasets/AllNLI')
     msnli_test_data = nli_reader.get_examples('dev.gz') #,max_examples=50)

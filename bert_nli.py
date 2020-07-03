@@ -20,29 +20,22 @@ class BertNLIModel(nn.Module):
         if 'bert-base' in bert_type:
             self.bert = BertModel.from_pretrained('bert-base-uncased')
             self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-            self.num_hidden_layers = 12
-            self.vdim = 768
         elif 'bert-large' in bert_type:
             self.bert = BertModel.from_pretrained('bert-large-uncased')
             self.tokenizer = BertTokenizer.from_pretrained('bert-large-uncased')
-            self.num_hidden_layers = 24
-            self.vdim = 1024
         elif 'albert' in bert_type:
             self.bert = AlbertModel.from_pretrained(bert_type)
             self.tokenizer = AlbertTokenizer.from_pretrained(bert_type)
-            if 'base' in bert_type: 
-                self.vdim = 768
-                self.num_hidden_layers = 12
-            if '-large-' in bert_type: 
-                self.vdim = 1024
-                self.num_hidden_layers = 24
         else:
             print('illegal bert type {}!'.format(bert_type))
 
+        self.num_hidden_layers = self.bert.config.num_hidden_layers
+        self.vdim = self.bert.config.hidden_size
         self.nli_head = nn.Linear(self.vdim,label_num)
         self.gpu = gpu
         self.batch_size=batch_size
         self.sm = nn.Softmax(dim=1)
+        self.reinit(layer_num = int(self.num_hidden_layers/4))
 
         # for checkpointing
         # self.dummy_tensor = torch.ones(1, dtype=torch.float32, requires_grad=True)
@@ -58,6 +51,15 @@ class BertNLIModel(nn.Module):
                 self.load_state_dict(sdict)
         else:
             if self.gpu: self.to('cuda')
+
+    def reinit(self, layer_num = 4):
+        layer_idx = [self.num_hidden_layers-1-i for i in range(layer_num)]
+        layer_names = ['encoder.layer.{}'.format(j) for j in layer_idx]
+        for pn, pp in self.bert.named_parameters():
+            if any([ln in pn for ln in layer_names]):
+                pp = torch.randn(pp.shape)*0.02
+                pp.requires_grad = True
+
 
     def load_model(self, sdict):
         if self.gpu:
