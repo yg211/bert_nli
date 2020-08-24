@@ -50,7 +50,7 @@ def build_batch(tokenizer, text_list, model_type):
     assert(len(token_id_list) == len(segment_list))
     for ii in range(len(token_id_list)):
         token_id_list[ii] += [0]*(longest-len(token_id_list[ii]))
-        attention_masks[ii] += [1]*(longest-len(attention_masks[ii]))
+        attention_masks[ii] += [0]*(longest-len(attention_masks[ii]))
         segment_list[ii] += [1]*(longest-len(segment_list[ii]))
 
     return token_id_list, segment_list, attention_masks
