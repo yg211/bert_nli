@@ -13,7 +13,7 @@ from utils.utils import build_batch
 class BertNLIModel(nn.Module):
     """Performs prediction, given the input of BERT embeddings.
     """
-    def __init__(self,model_path=None,gpu=True,bert_type='bert-base',label_num=3,batch_size=8):
+    def __init__(self,model_path=None,gpu=True,bert_type='bert-base',label_num=3,batch_size=8,reinit_num=0,freeze_layers=False):
         super(BertNLIModel, self).__init__()
         self.bert_type = bert_type
 
@@ -35,10 +35,7 @@ class BertNLIModel(nn.Module):
         self.gpu = gpu
         self.batch_size=batch_size
         self.sm = nn.Softmax(dim=1)
-        self.reinit(layer_num = int(self.num_hidden_layers/4))
-
-        # for checkpointing
-        # self.dummy_tensor = torch.ones(1, dtype=torch.float32, requires_grad=True)
+        self.reinit(layer_num=reinit_num, freeze=freeze_layers)
 
         # load trained model
         if model_path is not None:
@@ -52,16 +49,19 @@ class BertNLIModel(nn.Module):
         else:
             if self.gpu: self.to('cuda')
 
-    def reinit(self, layer_num = 4):
+    def reinit(self, layer_num, freeze):
         """Reinitialise parameters of last N layers and freeze all others"""
-        for _, pp in self.bert.named_parameters():
-            pp.requires_grad = False
-        layer_idx = [self.num_hidden_layers-1-i for i in range(layer_num)]
-        layer_names = ['encoder.layer.{}'.format(j) for j in layer_idx]
-        for pn, pp in self.bert.named_parameters():
-            if any([ln in pn for ln in layer_names]):
-                pp.data = torch.randn(pp.shape)*0.02
-                pp.requires_grad = True
+        if freeze:
+            for _, pp in self.bert.named_parameters():
+                pp.requires_grad = False
+
+        if layer_num >= 0: 
+            layer_idx = [self.num_hidden_layers-1-i for i in range(layer_num)]
+            layer_names = ['encoder.layer.{}'.format(j) for j in layer_idx]
+            for pn, pp in self.bert.named_parameters():
+                if any([ln in pn for ln in layer_names]):
+                    pp.data = torch.randn(pp.shape)*0.02
+                    pp.requires_grad = True
 
 
     def load_model(self, sdict):
