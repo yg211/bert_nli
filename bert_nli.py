@@ -53,6 +53,9 @@ class BertNLIModel(nn.Module):
             if self.gpu: self.to('cuda')
 
     def reinit(self, layer_num = 4):
+        """Reinitialise parameters of last N layers and freeze all others"""
+        for _, pp in self.bert.named_parameters():
+            pp.requires_grad = False
         layer_idx = [self.num_hidden_layers-1-i for i in range(layer_num)]
         layer_names = ['encoder.layer.{}'.format(j) for j in layer_idx]
         for pn, pp in self.bert.named_parameters():
