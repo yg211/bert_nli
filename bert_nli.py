@@ -57,7 +57,7 @@ class BertNLIModel(nn.Module):
         layer_names = ['encoder.layer.{}'.format(j) for j in layer_idx]
         for pn, pp in self.bert.named_parameters():
             if any([ln in pn for ln in layer_names]):
-                pp = torch.randn(pp.shape)*0.02
+                pp.data = torch.randn(pp.shape)*0.02
                 pp.requires_grad = True
 
 
