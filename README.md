@@ -47,6 +47,7 @@ python get_data.py
 ```
 * (Optional) Our code supports the use of the [Hans](https://arxiv.org/abs/1902.01007) dataset to train the model, in order to prevent the BERT model from exploiting spurious features to make NLI predictions. To use the Hans dataset, download *heuristics_train_set.txt* and *heuristics_evaluation_set.txt* from [here](https://github.com/tommccoy1/hans), and put them to *datasets/Hans/*.
 During training/test, add argument *--hans 1*.
+* (Optional) To use mixed precision training (nvidia apex), run the code below:
 ```shell script
 git clone https://github.com/NVIDIA/apex
 cd apex
