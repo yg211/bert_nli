@@ -59,7 +59,7 @@ class BertNLIModel(nn.Module):
             layer_idx = [self.num_hidden_layers-1-i for i in range(layer_num)]
             layer_names = ['encoder.layer.{}'.format(j) for j in layer_idx]
             for pn, pp in self.bert.named_parameters():
-                if any([ln in pn for ln in layer_names]):
+                if any([ln in pn for ln in layer_names]) or 'pooler.' in pn:
                     pp.data = torch.randn(pp.shape)*0.02
                     pp.requires_grad = True
 
