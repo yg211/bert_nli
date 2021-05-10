@@ -1,7 +1,7 @@
 # BERT-based NLI model
 
 This project includes a natural language inference (NLI) model, developed
-by fine-tuning Transformers on the SNLI, MultiNLI and Hans datasets. This project has been used to develop our paper [Adapting by Pruning: A Case Study on BERT](https://arxiv.org/abs/2105.03343). Please cite this paper when you use this project. 
+by fine-tuning Transformers on the SNLI, MultiNLI and Hans datasets. This project has been used to develop our paper [Adapting by Pruning: A Case Study on BERT](https://arxiv.org/abs/2105.03343)([appendix](paper/appendix.pdf)). Please cite this paper when you use this project. 
 
 **Highlighted Features**
 
