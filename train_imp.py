@@ -9,11 +9,12 @@ import torchvision.transforms as transforms
 
 import os
 import argparse
+import pickle
 
 from models import *
 from complete_train import complete_train
 from utils import progress_bar
-from mask_model import ModelMasker
+from ticket_wrapper import TicketWrapper
 
 
 def get_data():
@@ -50,27 +51,34 @@ def get_data():
 def get_args():
     parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
     parser.add_argument('--weight_lr', '-wlr', default=1e-1, type=float, help='weights learning rate')
-    parser.add_argument('--mask_lr', '-mlr', default=1e-2, type=float, help='mask learning rate')
-    parser.add_argument('--mask_decay', '-mdc', default=1e-4, type=float, help='mask decay rate')
-    parser.add_argument('--epoch_num', '-e', default=10, type=int, help='epoch num')
-    parser.add_argument('--wanted_density', '-wd', default=1., type=float, help='wanted density, between 0 and 1')
-    parser.add_argument('--resume', '-r', action='store_true', help='resume from checkpoint')
+    parser.add_argument('--epoch_num', '-ep', default=20, type=int, help='epoch num')
+    parser.add_argument('--lowest_density', '-ld', default=1e-3, type=float, help='lowest density, between 0 and 1')
     args = parser.parse_args()
-    return args.epoch_num, args.weight_lr, args.mask_lr, args.mask_decay, args.wanted_density, args.resume
+    return args.epoch_num, args.weight_lr, args.lowest_density
+
+
+    
+def save_model(model_save_path, model_state_dict, masks, acc, pp):
+    info_to_save = {
+        'model_state_dict': model_state_dict, 
+        'masks': masks,
+    }
+
+    pickle.dump(info_to_save, 
+            open(os.path.join(model_save_path,'mask_model_acc{:.3f}_density{:.3f}.masks'.format(acc, pp)), 'wb'))
+
 
 if __name__ == '__main__':
 
     trainloader, testloader = get_data()
-    epoch_num, wlr, mlr, mdc, wanted_density, resume = get_args()
+    epoch_num, wlr, lowest_density = get_args()
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    mask = True
+    mask = False
 
     print('\n===== Arguments =====')
     print('epoch_num:', epoch_num)
     print('weight_lr:', wlr)
-    print('mask_lr:', mlr)
-    print('mask_decay:', mdc)
-    print('wanted density:', wanted_density)
+    print('lowest density:', lowest_density)
     print('===== Arguments =====\n')
 
     print('==> Building model..')
@@ -91,19 +99,23 @@ if __name__ == '__main__':
     # net = SimpleDLA()
     net = net.to(device)
 
-    if mask: net = ModelMasker(net, device, wlr, mlr, mdc)
+    # if 'cuda' in device:
+        # net = torch.nn.DataParallel(net)
+        # cudnn.benchmark = True
 
-    if 'cuda' in device and not mask:
-        net = torch.nn.DataParallel(net)
-        cudnn.benchmark = True
+    net = TicketWrapper(net, device)
 
-    complete_train(net, trainloader, testloader, wlr, epoch_num, device, resume, wanted_density, mask=mask)
+    for prune_step in range(100):
+        net.restore_weights()
+        pp = net.get_sparsity()
+        print('\n===== Prune Step {}, Density {:.3f} ====='.format(prune_step, pp))
+        best_acc, best_weights = complete_train(net, trainloader, testloader, wlr, epoch_num, device)
+        net.load_state_dict(best_weights)
+        save_model('./imp_weights', best_weights, net.masks, best_acc, pp) 
 
-
-
-
-
-
+        net.update_threshold(best_weights)
+        net.update_masks(best_weights)
+        if pp < lowest_density: break
 
 
 

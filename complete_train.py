@@ -74,9 +74,9 @@ def test(net, testloader, epoch,  device, criterion, best_acc, mask):
             _, predicted = outputs.max(1)
             total += targets.size(0)
             correct += predicted.eq(targets).sum().item()
-            ones_percent.append(net.count_ones())
 
             if mask:
+                ones_percent.append(net.count_ones())
                 progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d) | OnesPercent: %.6f'
                          % (test_loss/(batch_idx+1), 100.*correct/total, correct, total, np.mean(ones_percent)))
             else:
@@ -85,10 +85,13 @@ def test(net, testloader, epoch,  device, criterion, best_acc, mask):
 
     # Save checkpoint.
     acc = 100.*correct/total
-    if acc > best_acc:
-        return acc 
+    if acc > best_acc:  
+        if mask:
+            return acc, [net.mask_weights, net.update_weights]
+        else:
+            return acc, net.state_dict()
     else:
-        return best_acc
+        return best_acc, None
 
     '''
     acc = 100.*correct/total
@@ -116,7 +119,7 @@ def test(net, testloader, epoch,  device, criterion, best_acc, mask):
     '''
 
 
-def complete_train(net, trainloader, testloader, resume, lr, epoch_num, device, wanted_density=1., mask=False):
+def complete_train(net, trainloader, testloader, lr, epoch_num, device, resume=False, wanted_density=1., mask=False):
     best_acc = 0  # best test accuracy
     start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 
@@ -134,16 +137,19 @@ def complete_train(net, trainloader, testloader, resume, lr, epoch_num, device, 
         optimizer = None
         scheduler = None
     else:
-        optimizer = optim.SGD(net.parameters(), lr=lr,
-                          momentum=0.9, weight_decay=5e-4)
+        optimizer = optim.SGD(net.parameters(), lr=lr, momentum=0.9, weight_decay=5e-4)
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
 
     for epoch in range(start_epoch, start_epoch+epoch_num):
         train(net, trainloader, epoch, device, optimizer, criterion, wanted_density, mask)
-        best_acc = test(net, testloader, epoch, device, criterion, best_acc, mask)
+        best_acc, saved_weights = test(net, testloader, epoch, device, criterion, best_acc, mask)
+        if saved_weights is not None: best_weights = saved_weights
 
         if not mask: scheduler.step()
         else: net.weights_lr *= 0.5
+
+    assert best_weights is not None
+    return best_acc, best_weights
 
 
 
