@@ -6,14 +6,13 @@ import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
 
 import torchvision
-import torchvision.transforms as transforms
 
 import os
 import argparse
 import numpy as np
 
 from models import *
-from utils import progress_bar
+from utils.utils import progress_bar
 
 
 def adjust_decay(net, ones_percent, wanted_density):
