@@ -77,16 +77,15 @@ class ModelMasker(nn.Module):
             if pn in self.mask_weights:
                 # update mask weights
                 soft_bin = self.sigmoid(self.mask_weights[pn]*self.softm).detach()
-                gd = self.masks[pn].grad
-                self.mask_weights[pn] -= gd*self.mask_lr*soft_bin*(1-soft_bin)
+                self.mask_weights[pn] -= self.masks[pn].grad*self.mask_lr*soft_bin*(1-soft_bin)
                 ones = torch.ones(self.mask_weights[pn].shape).to(self.device)
                 self.mask_weights[pn] -= ones*self.mask_decay
                 # update weights
-                gd = self.update_weights[pn].grad.detach()
+                gd = self.update_weights[pn].grad
                 self.update_weights[pn].requires_grad = False
                 self.update_weights[pn] -= self.weights_lr * gd 
-                # self.update_weights[pn] -= self.weights_lr * gd * soft_bin 
-                #self.update_weights[pn] -= self.weights_lr * 0.1 * self.update_weights[pn] # l2 regularization
+                # self.update_weights[pn] -= self.weights_lr * gd * soft_bin # soft gradient
+                # self.update_weights[pn] -= self.weights_lr * 0.1 * self.update_weights[pn] # l2 regularization
             
     '''
     def adamw_step(self, mask_lr=1e-3, other_lr=1e-3, mask_decay=1e-3, other_decay=1e-3):

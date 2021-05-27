@@ -16,20 +16,13 @@ from models import *
 from utils import progress_bar
 
 
-def adjust_decay(net, ones_percent):
-    # if len(ones_percent) < 2: return None
-    thres = 0.9
-
-    # if ones_percent[-2]-ones_percent[-1]>1e-3: 
-        # net.mask_decay *= 0.1
-    # elif ones_percent[-2] < ones_percent[-1]: 
-        # net.mask_decay * 10
-    if ones_percent[-1] < thres:
+def adjust_decay(net, ones_percent, wanted_density):
+    if ones_percent[-1] < wanted_density+0.005:
         net.mask_decay = 0.
         net.mask_lr = 0.
 
 
-def train(net, trainloader, epoch, device, optimizer, criterion, mask, max_grad_norm=1.):
+def train(net, trainloader, epoch, device, optimizer, criterion, wanted_density, mask, max_grad_norm=1.):
     print('\nEpoch: %d' % epoch)
     net.train()
     train_loss = 0
@@ -57,7 +50,7 @@ def train(net, trainloader, epoch, device, optimizer, criterion, mask, max_grad_
 
         if mask:
             ones_percent.append(net.count_ones())
-            adjust_decay(net, ones_percent)
+            adjust_decay(net, ones_percent, wanted_density)
             progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f | OnesPercent: %.3f | MaskDecay: %.5f'
                      % (train_loss/(batch_idx+1), 100.*correct/total, ones_percent[-1], net.mask_decay))
         else:
@@ -123,7 +116,7 @@ def test(net, testloader, epoch,  device, criterion, best_acc, mask):
     '''
 
 
-def complete_train(net, trainloader, testloader, resume, lr, epoch_num, device, mask=False):
+def complete_train(net, trainloader, testloader, resume, lr, epoch_num, device, wanted_density=1., mask=False):
     best_acc = 0  # best test accuracy
     start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 
@@ -146,7 +139,7 @@ def complete_train(net, trainloader, testloader, resume, lr, epoch_num, device, 
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
 
     for epoch in range(start_epoch, start_epoch+epoch_num):
-        train(net, trainloader, epoch, device, optimizer, criterion, mask)
+        train(net, trainloader, epoch, device, optimizer, criterion, wanted_density, mask)
         best_acc = test(net, testloader, epoch, device, criterion, best_acc, mask)
 
         if not mask: scheduler.step()

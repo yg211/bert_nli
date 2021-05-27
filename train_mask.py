@@ -49,20 +49,29 @@ def get_data():
 
 def get_args():
     parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
-    parser.add_argument('--wlr', default=1e-1, type=float, help='learning rate')
-    parser.add_argument('--mlr', default=1e-1, type=float, help='learning rate')
-    parser.add_argument('--mdc', default=1e-3, type=float, help='learning rate')
+    parser.add_argument('--weight_lr', '-wlr', default=1e-1, type=float, help='weights learning rate')
+    parser.add_argument('--mask_lr', '-mlr', default=1e-2, type=float, help='mask learning rate')
+    parser.add_argument('--mask_decay', '-mdc', default=1e-4, type=float, help='mask decay rate')
     parser.add_argument('--epoch_num', '-e', default=10, type=int, help='epoch num')
+    parser.add_argument('--wanted_density', '-wd', default=1., type=float, help='wanted density, between 0 and 1')
     parser.add_argument('--resume', '-r', action='store_true',
                         help='resume from checkpoint')
     args = parser.parse_args()
-    return args.epoch_num, args.wlr, args.mlr, args.mdc, args.resume
+    return args.epoch_num, args.weight_lr, args.mask_lr, args.mask_decay, args.wanted_density, args.resume
 
 if __name__ == '__main__':
 
     trainloader, testloader = get_data()
-    epoch_num, wlr, mlr, mdc, resume = get_args()
+    epoch_num, wlr, mlr, mdc, wanted_density, resume = get_args()
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+    print('\n===== Arguments =====')
+    print('epoch_num:', epoch_num)
+    print('weight_lr:', wlr)
+    print('mask_lr:', mlr)
+    print('mask_decay:', mdc)
+    print('wanted density:', wanted_density)
+    print('===== Arguments =====\n')
 
     print('==> Building model..')
     net = VGG('VGG19')
@@ -87,7 +96,7 @@ if __name__ == '__main__':
         #net = torch.nn.DataParallel(net)
         #cudnn.benchmark = True
 
-    complete_train(net, trainloader, testloader, resume, wlr, epoch_num, device, mask=True)
+    complete_train(net, trainloader, testloader, resume, wlr, epoch_num, device, wanted_density, mask=True)
 
 
 
