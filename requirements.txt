@@ -83,7 +83,7 @@ torch==1.7.0
 tqdm==4.46.0
 transformers==3.0.2
 typing-extensions==3.7.4.3
-urllib3==1.25.9
+urllib3==1.26.5
 wasabi==0.7.1
 Werkzeug==1.0.1
 wrapt==1.12.1
