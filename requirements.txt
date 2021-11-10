@@ -73,7 +73,7 @@ spacy==2.3.2
 srsly==1.0.2
 tensorboard==2.3.0
 tensorboard-plugin-wit==1.7.0
-tensorflow==2.4.0
+tensorflow==2.5.2
 tensorflow-estimator==2.3.0
 termcolor==1.1.0
 tf-slim==1.1.0
