@@ -30,7 +30,7 @@ h5py==2.10.0
 idna==2.9
 importlib-metadata==1.7.0
 jmespath==0.9.5
-joblib==0.14.1
+joblib==1.2.0
 Keras-Preprocessing==1.1.2
 kiwisolver==1.2.0
 Markdown==3.2.2
